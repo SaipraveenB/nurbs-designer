@@ -14,8 +14,11 @@ import javax.swing.JTextField;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.GridLayout;
+import java.io.IOException;
 
 import javax.swing.JLabel;
+import javax.swing.JScrollBar;
+import javax.swing.JScrollPane;
 
 
 public class NURBSEditor extends JFrame {
@@ -23,6 +26,10 @@ public class NURBSEditor extends JFrame {
 	private JPanel contentPane;
 	private JTextField textField;
 	private ArrayList<Point> ptList;
+	private ArrayList<Point> nurbs;
+	public Renderer renderer;
+	private Thread renderThread;
+	private MouseDragHandler dragHandler;
 	/**
 	 * Launch the application.
 	 */
@@ -39,27 +46,14 @@ public class NURBSEditor extends JFrame {
 		});
 	}
 	
-	class Point{
-		
-		float x;
-		float y;
-		float wt;
-		
-		public Point( float x, float y, float wt ){
-			this.x = x;
-			this.y = y;
-			this.wt = wt;
-		}
-		
-		public String toString(){
-			return "(" + x + "," + y + ")#" + wt;
-		}
-		
-	}
+	
 	/**
 	 * Create the frame.
+	 * @throws IOException 
 	 */
-	public NURBSEditor() {
+	public NURBSEditor() throws IOException {
+		
+		
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -70,18 +64,12 @@ public class NURBSEditor extends JFrame {
 		
 		final JPanel panel = new JPanel();
 		contentPane.add(panel, BorderLayout.CENTER);
-		
-		JList list = new JList(){
-			public Dimension getPreferredSize() {
-				return panel.getSize();
-			};
-		};
-		panel.add(list);
+		panel.setLayout(new BorderLayout(0, 0));
 		
 		LinkedList<String> ll = new LinkedList<String>();
 		
 		ptList = new ArrayList<Point>();
-		list.setListData(ptList.toArray());
+		nurbs = new ArrayList<Point>();
 		
 		JPanel panel_1 = new JPanel();
 		contentPane.add(panel_1, BorderLayout.SOUTH);
@@ -90,6 +78,17 @@ public class NURBSEditor extends JFrame {
 		textField = new JTextField();
 		panel_1.add(textField);
 		textField.setColumns(10);
+		
+		
+		
+		JList list = new JList();
+		list.setVisibleRowCount(100);
+		//panel.add(list);
+		list.setListData(ptList.toArray());
+		
+		JScrollPane scrollPane = new JScrollPane();
+		panel.add(scrollPane, BorderLayout.CENTER);
+		scrollPane.setViewportView(list);
 		
 		final JList listGUI = list;
 		JButton btnNewButton = new JButton("+");
@@ -102,11 +101,20 @@ public class NURBSEditor extends JFrame {
 				float y = Float.parseFloat(comp[1]);
 				float w = Float.parseFloat(comp[2]);
 				
-				ptList.add( new Point(x, y, w) );
+				
+				renderer.stateChanged();
+				synchronized( ptList ){
+					ptList.add( new Point(x, y, w) );
+				}
 				listGUI.setListData(ptList.toArray());
 
 			}
 		});
+		renderer = new Renderer( );
+		renderer.trackList( ptList );
+		renderer.trackList( nurbs );
+
+		renderer.initialize();
 		
 		panel_1.add(btnNewButton);
 		
@@ -114,8 +122,11 @@ public class NURBSEditor extends JFrame {
 		btnNewButton_1.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Point p = (Point)listGUI.getSelectedValue();
-				ptList.remove(p);
+				synchronized( ptList ){
+					ptList.remove(p);
+				}
 				
+				renderer.stateChanged();
 				listGUI.setListData(ptList.toArray());
 			}
 		});
@@ -130,9 +141,12 @@ public class NURBSEditor extends JFrame {
 				if( index == ptList.size() - 1 )
 					return;
 				
-				ptList.remove( p );
-				ptList.add(index + 1, p);
+				synchronized( ptList ){
+					ptList.remove(p);
+					ptList.add(index + 1, p);
+				}
 				
+				renderer.stateChanged();
 				listGUI.setListData(ptList.toArray());
 				listGUI.setSelectedIndex(index + 1);
 			}
@@ -151,6 +165,7 @@ public class NURBSEditor extends JFrame {
 				ptList.remove( p );
 				ptList.add(index - 1, p);
 				
+				renderer.stateChanged();
 				listGUI.setListData(ptList.toArray());
 				listGUI.setSelectedIndex(index - 1);
 			}
@@ -159,8 +174,36 @@ public class NURBSEditor extends JFrame {
 		
 		panel_1.add(btnNewButton_2);
 		
+		JButton btnTerminateRenderer = new JButton("Terminate Renderer");
+		btnTerminateRenderer.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				renderer.terminate();
+			}
+		});
+		contentPane.add(btnTerminateRenderer, BorderLayout.NORTH);
+		
+		dragHandler = new MouseDragHandlerImpl();
+		renderer.setHandler( dragHandler );
+		dragHandler.setPointGroup(ptList);
+		dragHandler.setRadius(0.1f);
+		
+		renderThread = new Thread( renderer, "renderer" );
+		System.out.println("starting renderer");
+		renderThread.start();
+		/*Animator anim = new Animator();
+		anim.al = ptList;
+		anim.r = renderer;
+		System.out.println("starting animator");
+		Thread animThread = new Thread( anim, "animator" );
+		animThread.start();*/
+		
+		synchronized( ptList ){
+			for( float i = 0.0f; i < 1; i+= 0.2f ){
+				ptList.add( new Point( i, i*i, 1 ) );
+			}
+			listGUI.setListData(ptList.toArray());
+			renderer.stateChanged();
+		}
+		
 	}
-
-	
-	   
 }
