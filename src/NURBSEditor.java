@@ -190,18 +190,20 @@ public class NURBSEditor extends JFrame {
 		renderThread = new Thread( renderer, "renderer" );
 		System.out.println("starting renderer");
 		renderThread.start();
-		/*Animator anim = new Animator();
-		anim.al = ptList;
-		anim.r = renderer;
-		System.out.println("starting animator");
-		Thread animThread = new Thread( anim, "animator" );
-		animThread.start();*/
 		
 		synchronized( ptList ){
 			for( float i = 0.0f; i < 1; i+= 0.2f ){
 				ptList.add( new Point( i, i*i, 1 ) );
 			}
 			listGUI.setListData(ptList.toArray());
+			renderer.stateChanged();
+		}
+		
+		synchronized( nurbs ){
+			for( float i = 0.0f; i > -1; i-= 0.2f ){
+				nurbs.add( new Point( i, i*i, 1 ) );
+			}
+			//listGUI.setListData(ptList.toArray());
 			renderer.stateChanged();
 		}
 		

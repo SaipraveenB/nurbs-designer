@@ -34,6 +34,7 @@ public class Renderer implements Runnable {
 	public Renderer( ){
 		pList = new ArrayList<ArrayList<Point>>();
 		changed = false;
+		ptListPtr = 0;
 	}
 	
 	
@@ -59,8 +60,8 @@ public class Renderer implements Runnable {
 	}
 	
 	public String makeChangeString( int x ){
-		String s = " " + pList.size();
-		for( int i = 0; i < pList.size(); i++ ){
+		String s = " " + pList.get(x).size();
+		for( int i = 0; i < pList.get(x).size(); i++ ){
 			s += " " + pList.get(x).get(i).x + " " + pList.get(x).get(i).y;
 		}
 		
@@ -90,13 +91,18 @@ public class Renderer implements Runnable {
 					}else{
 						synchronized( pList ){
 							String outString = "A " + ptListPtr + makeChangeString( ptListPtr );
-							//System.out.println("Writing: " + outString);
 							serviceWriter.println( outString );
 							serviceWriter.flush();
-							
+							System.out.println("Out: " + outString);
+
 							ptListPtr++;
-							if( ptListPtr >= this.pList.size() )
+
+							if( ptListPtr >= this.pList.size() ){
+								System.out.println("All buffers transmitted");
 								changed = false;
+								ptListPtr = 0;
+							}
+
 						}
 					}
 				
