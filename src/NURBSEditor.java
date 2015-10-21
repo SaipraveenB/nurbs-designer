@@ -19,17 +19,33 @@ import java.io.IOException;
 import javax.swing.JLabel;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
 
 
 public class NURBSEditor extends JFrame {
 
 	private JPanel contentPane;
-	private JTextField textField;
 	private ArrayList<Point> ptList;
 	private ArrayList<Point> nurbs;
+	private ArrayList<ArrayList<Point>> ptMatrix;
+	private ArrayList<ArrayList<Point>> nurbsMatrix;
+	
 	public Renderer renderer;
 	private Thread renderThread;
 	private MouseDragHandler dragHandler;
+	private NURBSSurface nurbsFactory;
+	private JSpinner samplesSpinner;
+	private JSpinner orderSpinner;
+	
+	
+	private ArrayList<Point> matrixToList( ArrayList<ArrayList<Point>> mat ){
+		ArrayList<Point> al = new ArrayList<Point>();
+		for( int i = 0; i < mat.size(); i ++ ){
+			al.addAll( mat.get(i) );
+		}
+		return al;
+	}
+	
 	/**
 	 * Launch the application.
 	 */
@@ -47,13 +63,40 @@ public class NURBSEditor extends JFrame {
 	}
 	
 	
+	public double[] getUniformKnots( int n ){
+		double d[] = new double[n];
+		for( int i = 0; i < n ; i++ ){
+			d[i] = (( ((double)i) / (double)(n-1) ));
+		}
+		return d;
+	}
+	public void updateResult(){
+		int samples = (Integer)samplesSpinner.getValue();
+		int order = (Integer)orderSpinner.getValue();
+		
+		int sqSide = (int)Math.sqrt( ptList.size() );
+		
+		nurbsFactory = new NURBSSurface( 4, sqSide );
+		nurbsFactory.addCoordinates( ptMatrix );
+		
+		System.out.println( getUniformKnots( 4 + sqSide ) );
+		nurbsFactory.setNumSamples(40);
+		double d[] = { 0, 0.0001, 0.0002, 0.33, 0.67, 0.99998, 0.99999, 1.0 };
+		nurbsFactory.getKnotvectors( getUniformKnots( 4 + sqSide ) );
+		nurbsFactory.NurbsCurve();
+		
+		nurbsMatrix.clear();
+		nurbsMatrix.addAll( nurbsFactory.curve );
+		nurbs.clear();
+		nurbs.addAll(  matrixToList( nurbsMatrix ) );
+	}
 	/**
 	 * Create the frame.
 	 * @throws IOException 
 	 */
 	public NURBSEditor() throws IOException {
 		
-		
+		System.out.println("Starting.....!!!!");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100, 100, 450, 300);
 		contentPane = new JPanel();
@@ -70,109 +113,29 @@ public class NURBSEditor extends JFrame {
 		
 		ptList = new ArrayList<Point>();
 		nurbs = new ArrayList<Point>();
+		ptMatrix = new ArrayList<ArrayList<Point>>();
+		nurbsMatrix = new ArrayList<ArrayList<Point>>();
 		
 		JPanel panel_1 = new JPanel();
 		contentPane.add(panel_1, BorderLayout.SOUTH);
 		panel_1.setLayout(new GridLayout(0, 5, 0, 0));
 		
-		textField = new JTextField();
-		panel_1.add(textField);
-		textField.setColumns(10);
-		
-		
-		
-		JList list = new JList();
-		list.setVisibleRowCount(100);
-		//panel.add(list);
-		list.setListData(ptList.toArray());
-		
 		JScrollPane scrollPane = new JScrollPane();
 		panel.add(scrollPane, BorderLayout.CENTER);
-		scrollPane.setViewportView(list);
-		
-		final JList listGUI = list;
-		JButton btnNewButton = new JButton("+");
-		btnNewButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				//System.out.println("Hello?");
-				String text = textField.getText();
-				String[] comp = text.split(",");
-				float x = Float.parseFloat(comp[0]);
-				float y = Float.parseFloat(comp[1]);
-				float w = Float.parseFloat(comp[2]);
-				
-				
-				renderer.stateChanged();
-				synchronized( ptList ){
-					ptList.add( new Point(x, y, w) );
-				}
-				listGUI.setListData(ptList.toArray());
-
-			}
-		});
 		renderer = new Renderer( );
+		
 		renderer.trackList( ptList );
 		renderer.trackList( nurbs );
 
 		renderer.initialize();
 		
-		panel_1.add(btnNewButton);
+		orderSpinner = new JSpinner();
+		panel_1.add(orderSpinner);
+		orderSpinner.setValue(3);
 		
-		JButton btnNewButton_1 = new JButton("-");
-		btnNewButton_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Point p = (Point)listGUI.getSelectedValue();
-				synchronized( ptList ){
-					ptList.remove(p);
-				}
-				
-				renderer.stateChanged();
-				listGUI.setListData(ptList.toArray());
-			}
-		});
-		panel_1.add(btnNewButton_1);
-		
-		JButton button = new JButton(">");
-		button.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Point p = (Point)listGUI.getSelectedValue();
-				int index = ptList.indexOf(p);
-				
-				if( index == ptList.size() - 1 )
-					return;
-				
-				synchronized( ptList ){
-					ptList.remove(p);
-					ptList.add(index + 1, p);
-				}
-				
-				renderer.stateChanged();
-				listGUI.setListData(ptList.toArray());
-				listGUI.setSelectedIndex(index + 1);
-			}
-		});
-		panel_1.add(button);
-		
-		JButton btnNewButton_2 = new JButton("<");
-		btnNewButton_2.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				Point p = (Point)listGUI.getSelectedValue();
-				int index = ptList.indexOf(p);
-				
-				if( index == 0 )
-					return;
-				
-				ptList.remove( p );
-				ptList.add(index - 1, p);
-				
-				renderer.stateChanged();
-				listGUI.setListData(ptList.toArray());
-				listGUI.setSelectedIndex(index - 1);
-			}
-		});
-		
-		
-		panel_1.add(btnNewButton_2);
+		samplesSpinner = new JSpinner();
+		panel_1.add(samplesSpinner);
+		samplesSpinner.setValue(50);
 		
 		JButton btnTerminateRenderer = new JButton("Terminate Renderer");
 		btnTerminateRenderer.addActionListener(new ActionListener() {
@@ -182,7 +145,7 @@ public class NURBSEditor extends JFrame {
 		});
 		contentPane.add(btnTerminateRenderer, BorderLayout.NORTH);
 		
-		dragHandler = new MouseDragHandlerImpl();
+		dragHandler = new MouseDragHandlerImpl( this );
 		renderer.setHandler( dragHandler );
 		dragHandler.setPointGroup(ptList);
 		dragHandler.setRadius(0.1f);
@@ -192,18 +155,15 @@ public class NURBSEditor extends JFrame {
 		renderThread.start();
 		
 		synchronized( ptList ){
-			for( float i = 0.0f; i < 1; i+= 0.2f ){
-				ptList.add( new Point( i, i*i, 1 ) );
+			for( int i = 0; i < 6; i++ ){
+				ptMatrix.add( new ArrayList<Point>() );
+				for( int j = 0; j < 6; j++ ){
+					ptMatrix.get(i).add( new Point( i/4.0, 0.0, j/4.0, 1.0 ) );
+				}
 			}
-			listGUI.setListData(ptList.toArray());
-			renderer.stateChanged();
-		}
-		
-		synchronized( nurbs ){
-			for( float i = 0.0f; i > -1; i-= 0.2f ){
-				nurbs.add( new Point( i, i*i, 1 ) );
-			}
-			//listGUI.setListData(ptList.toArray());
+			//ptMatrix.get(2).add( 2, new Point( 2/3.0, 2/3.0, 0.5, 1.0 ) );
+			ptList.addAll( matrixToList( ptMatrix ) );
+			updateResult();
 			renderer.stateChanged();
 		}
 		

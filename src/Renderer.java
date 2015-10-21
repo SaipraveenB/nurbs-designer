@@ -39,7 +39,7 @@ public class Renderer implements Runnable {
 	
 	
 	public void initialize() throws IOException{
-		service = Runtime.getRuntime().exec("./mygl");
+		service = Runtime.getRuntime().exec("./nurbs/mygl");
 		serviceIn = service.getInputStream();
 		serviceOut = service.getOutputStream();
 		serviceWriter = new PrintWriter( serviceOut );
@@ -62,11 +62,12 @@ public class Renderer implements Runnable {
 	public String makeChangeString( int x ){
 		String s = " " + pList.get(x).size();
 		for( int i = 0; i < pList.get(x).size(); i++ ){
-			s += " " + pList.get(x).get(i).x + " " + pList.get(x).get(i).y;
+			s += " " + pList.get(x).get(i).x + " " + pList.get(x).get(i).y + " " + pList.get(x).get(i).z;
 		}
 		
 		return s;
 	}
+	
 	@Override
 	public void run() {
 		// TODO Auto-generated method stub
@@ -76,15 +77,14 @@ public class Renderer implements Runnable {
 				byte[] b = new byte[10];
 				//char a = (char)serviceIn.read();
 				String input = serviceScanner.nextLine();
-				//System.out.println("received: " + a);
+				System.out.println("received: " + input);
 					// Requesting response.
-					//System.out.println("Wait signal received, processing");
+					System.out.println("Wait signal received, processing");
 					ArrayList<Point> pList = this.pList.get(ptListPtr);
 					if( !changed || pList.size() < 2 ){
-						//System.out.println("Data Changed");
+						System.out.println("Data Unchanged");
 						
-						// control framerate
-						Thread.sleep(30);
+						//Thread.sleep(10);
 						serviceOut.write((int)'B');
 						serviceOut.write((int)'\n');
 						serviceOut.flush();
@@ -113,12 +113,15 @@ public class Renderer implements Runnable {
 				if( instr[0].equals("Y") || instr[0].equals("Z") ){
 					System.out.println( input );
 					input.split(" ");
-					float x = Float.valueOf( instr[1] );
-					float y = Float.valueOf( instr[2] );
+					float val[] = new float[9];
+					for( int i = 0; i < 9; i ++ ){
+						val[i] = Float.valueOf( instr[i + 1] );
+					}
+					
 					if( instr[0].equals("Y") )
-						handler.onSelect(new Point( x, y, 1.0f ));
+						handler.onSelect(new Point( val[0], val[1], val[2], 1.0f ), new Point( val[3], val[4], val[5], 1.0f ) );
 					else{
-						handler.onDrag(new Point( x, y, 1.0f ));
+						handler.onDrag(new Point( val[0], val[1], val[2], 1.0f ), new Point( val[3], val[4], val[5], 1.0f ), new Point( val[6], val[7], val[8], 1.0f ));
 						this.stateChanged();
 					}
 				}else{
@@ -130,9 +133,6 @@ public class Renderer implements Runnable {
 			e.printStackTrace();
 			return;
 
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 

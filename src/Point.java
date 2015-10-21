@@ -1,21 +1,35 @@
 
 public class Point{
 		
-		float x;
-		float y;
-		float wt;
+		double x;
+		double y;
+		double z;
+		double wt;
 		
-		public Point( float x, float y, float wt ){
+		public Point( double x, double y, double z, double wt ){
 			this.x = x;
 			this.y = y;
+			this.z = z;
 			this.wt = wt;
 		}
 		
 		public String toString(){
-			return "(" + x + "," + y + ")#" + wt;
+			return "(" + x + "," + y + "," + z + ")#" + wt;
 		}
 		
-		public float distanceTo( Point p ){
-			return (float)Math.sqrt( (p.x - x)*(p.x - x) + ( p.y - y )*( p.y - y ) );
+		public double distanceTo( Point p ){
+			return (double)Math.sqrt( (p.x - x)*(p.x - x) + ( p.y - y )*( p.y - y ) + ( p.z - z )*(p.z - z ) );
+		}
+		
+		public double weightedX(){
+			return this.x * this.wt;
+		}
+		
+		public double weightedY(){
+			return this.y * this.wt;
+		}
+		
+		public double weightedZ(){
+			return this.z * this.wt;
 		}
 	}
