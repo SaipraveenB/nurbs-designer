@@ -28,4 +28,4 @@ the GUI supports an increase in the sample size..
 Check out some of my other projects here:
 OpenCL path trapcer: https://github.com/SaipraveenB/opencl-path-tracer.git
 OpenGL HDR example:
-https://github.com/Saipraveenb/opengl-hdr.git
+https://github.com/SaipraveenB/opengl-hdr.git
