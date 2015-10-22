@@ -24,8 +24,6 @@ the GUI supports an increase in the sample size..
 ![o_3_s_100.png](/o_3_s_100.png)
 
 
-** Description and Synopsis coming soon **
-
 
 Check out some of my other projects here:
 OpenCL path trapcer: https://github.com/SaipraveenB/opencl-path-tracer.git
